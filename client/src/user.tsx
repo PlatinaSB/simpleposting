@@ -1,71 +1,139 @@
-import { Button, Label, Modal, TextInput } from "flowbite-react";
+import {
+  Button,
+  Card,
+  Label,
+  Modal,
+  Textarea,
+  TextInput,
+} from "flowbite-react";
 import { setAuthToken } from "./App";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
+import moment from "moment";
 
-export default function component() {
-  const [openModalemail, setOpenModalemail] = useState(false);
-  const [openModalpasss, setOpenModalpass] = useState(true);
-
+export default function PostManagement() {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [modals, setModals] = useState({
+    email: false,
+    password: false,
+    edit: false,
+  });
+  const [currentPost, setCurrentPost] = useState<{
+    id: number;
+    content: string;
+  } | null>(null);
   const [email, setEmail] = useState("");
-  const [oldpassword, setoldpassword] = useState("");
+  const [oldPassword, setOldPassword] = useState("");
   const [password, setPassword] = useState("");
-  const [repassword, setRePassword] = useState("");
+  const [rePassword, setRePassword] = useState("");
 
-  function onCloseModalpassword() {
-    setOpenModalpass(false);
-    setRePassword("");
-    setPassword("");
-    setoldpassword("");
-  }
+  const navigate = useNavigate();
 
-  function onCloseModalemail() {
-    setOpenModalemail(false);
-    setEmail("");
-  }
-
-  async function changePassword(
-    oldpassword: string,
-    password: string,
-    repassword: string,
-  ) {
+  async function fetchUserPosts() {
+    const userId = localStorage.getItem("userid");
     try {
-      const res = await axios.put("http://localhost:3000/changepassword", {
-        oldpassword,
-        password,
-        repassword,
-      });
-      if (res.status == 200) return alert("change password sucess");
+      const response = await axios.get(`http://localhost:3000/posts/${userId}`);
+      setPosts(response.data);
     } catch (error) {
-      console.error(error);
+      console.error("Error fetching posts:", error);
     }
   }
 
-  async function changeemail(email: string) {
+  useEffect(() => {
+    fetchUserPosts();
+  }, []);
+
+  async function deletePost(postId: number) {
+    try {
+      await axios.delete(`http://localhost:3000/posts/${postId}`);
+      alert("Post deleted successfully.");
+      fetchUserPosts();
+    } catch (error) {
+      console.error("Error deleting post:", error);
+    }
+  }
+
+  async function updatePost(postId: number, content: string) {
+    try {
+      await axios.put(`http://localhost:3000/posts/${postId}`, {
+        post: content,
+      });
+      alert("Post updated successfully.");
+      fetchUserPosts();
+      closeModal("edit");
+    } catch (error) {
+      console.error("Error updating post:", error);
+    }
+  }
+
+  async function changeEmail() {
     try {
       const res = await axios.put("http://localhost:3000/changeemail", {
         email,
       });
-      if (res.status == 200) return alert("change email sucess");
+      if (res.status === 200) {
+        alert("Email changed successfully.");
+        closeModal("email");
+      }
     } catch (error) {
-      console.error(error);
+      console.error("Error changing email:", error);
     }
   }
 
-  let navigate = useNavigate();
-  async function logout() {
+  async function changePassword() {
+    try {
+      const res = await axios.put("http://localhost:3000/changepassword", {
+        oldpassword: oldPassword,
+        password,
+        repassword: rePassword,
+      });
+      if (res.status === 200) {
+        alert("Password changed successfully.");
+        closeModal("password");
+      }
+    } catch (error) {
+      console.error("Error changing password:", error);
+    }
+  }
+
+  function openModal(
+    type: keyof typeof modals,
+    post?: { id: number; content: string },
+  ) {
+    setModals((prev) => ({ ...prev, [type]: true }));
+    if (type === "edit" && post) {
+      setCurrentPost(post);
+    }
+  }
+
+  function closeModal(type: keyof typeof modals) {
+    setModals((prev) => ({ ...prev, [type]: false }));
+    if (type === "edit") {
+      setCurrentPost(null);
+    }
+  }
+
+  function logout() {
     setAuthToken("");
     navigate("/login");
     localStorage.removeItem("token");
+    localStorage.removeItem("userid");
   }
+
   return (
     <>
-      <Button onClick={logout}>logout</Button>
-      <Button onClick={() => setOpenModalemail(true)}>Change Email</Button>
-      <Button onClick={() => setOpenModalpass(true)}>Change Password</Button>
+      <Button onClick={logout}>Logout</Button>
+      <Button onClick={() => openModal("email")}>Change Email</Button>
+      <Button onClick={() => openModal("password")}>Change Password</Button>
 
-      <Modal show={openModalemail} size="md" onClose={onCloseModalemail} popup>
+      {/* Change Email Modal */}
+      <Modal
+        show={modals.email}
+        size="md"
+        onClose={() => closeModal("email")}
+        popup
+      >
         <Modal.Header />
         <Modal.Body>
           <div className="space-y-6">
@@ -85,16 +153,17 @@ export default function component() {
               />
             </div>
             <div className="w-full">
-              <Button onClick={() => changeemail(email)}>Change email</Button>
+              <Button onClick={changeEmail}>Change Email</Button>
             </div>
           </div>
         </Modal.Body>
       </Modal>
 
+      {/* Change Password Modal */}
       <Modal
-        show={openModalpasss}
+        show={modals.password}
         size="md"
-        onClose={onCloseModalpassword}
+        onClose={() => closeModal("password")}
         popup
       >
         <Modal.Header />
@@ -103,25 +172,24 @@ export default function component() {
             <h3 className="text-xl font-medium text-gray-900 dark:text-white">
               Change Password
             </h3>
-
             <div>
               <div className="mb-2 block">
-                <Label htmlFor="password" value="Your Old password" />
+                <Label htmlFor="old-password" value="Your Old Password" />
               </div>
               <TextInput
-                id="password"
+                id="old-password"
                 type="password"
                 required
-                value={oldpassword}
-                onChange={(event) => setoldpassword(event.target.value)}
+                value={oldPassword}
+                onChange={(event) => setOldPassword(event.target.value)}
               />
             </div>
             <div>
               <div className="mb-2 block">
-                <Label htmlFor="password" value="Your New password" />
+                <Label htmlFor="new-password" value="Your New Password" />
               </div>
               <TextInput
-                id="password"
+                id="new-password"
                 type="password"
                 required
                 value={password}
@@ -130,29 +198,82 @@ export default function component() {
             </div>
             <div>
               <div className="mb-2 block">
-                <Label htmlFor="password" value="Your retype new password" />
+                <Label htmlFor="re-password" value="Retype New Password" />
               </div>
               <TextInput
-                id="password"
+                id="re-password"
                 type="password"
                 required
-                value={repassword}
+                value={rePassword}
                 onChange={(event) => setRePassword(event.target.value)}
               />
             </div>
-
             <div className="w-full">
-              <Button
-                onClick={() =>
-                  changePassword(oldpassword, password, repassword)
-                }
-              >
-                Change Password
-              </Button>
+              <Button onClick={changePassword}>Change Password</Button>
             </div>
           </div>
         </Modal.Body>
       </Modal>
+
+      {/* Edit Post Modal */}
+      <Modal
+        show={modals.edit}
+        size="md"
+        onClose={() => closeModal("edit")}
+        popup
+      >
+        <Modal.Header />
+        <Modal.Body>
+          <div className="max-w-md">
+            <div className="mb-2 block">
+              <Label htmlFor="edit-post" value="Edit Your Post" />
+            </div>
+            <Textarea
+              id="edit-post"
+              placeholder="Post content"
+              required
+              rows={4}
+              value={currentPost?.content || ""}
+              onChange={(event) =>
+                setCurrentPost(
+                  (prev) => ({ ...prev, content: event.target.value }) as any,
+                )
+              }
+            />
+          </div>
+          <Button
+            onClick={() =>
+              currentPost && updatePost(currentPost.id, currentPost.content)
+            }
+          >
+            Edit Post
+          </Button>
+        </Modal.Body>
+      </Modal>
+
+      {/* Posts List */}
+      <div>
+        {posts.length > 0 ? (
+          posts.map((post) => (
+            <Card key={post.postid}>
+              <h2 className="text-xl font-bold">
+                {moment(post.created_unix).format("YYYY-MM-DD HH:mm:ss")}
+              </h2>
+              <p>{post.post}</p>
+              <Button onClick={() => deletePost(post.postid)}>Delete</Button>
+              <Button
+                onClick={() =>
+                  openModal("edit", { id: post.postid, content: post.post })
+                }
+              >
+                Edit
+              </Button>
+            </Card>
+          ))
+        ) : (
+          <p>Loading posts...</p>
+        )}
+      </div>
     </>
   );
 }

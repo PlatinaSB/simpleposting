@@ -1,6 +1,7 @@
 import { Button, Navbar } from "flowbite-react";
+import PostsComponent from "./post";
 
-export default function Navabar() {
+export default function NavbarComponent() {
   const token = localStorage.getItem("token");
 
   return (
@@ -19,7 +20,7 @@ export default function Navabar() {
         {!token ? (
           <Button href="/register">Register</Button>
         ) : (
-          <Button href="/user">accunt</Button>
+          <><PostsComponent/><Button href="/user">Account</Button></>
         )}
         <Navbar.Toggle />
       </div>
@@ -27,8 +28,10 @@ export default function Navabar() {
         <Navbar.Link href="/" active>
           Home
         </Navbar.Link>
-        <Navbar.Link href=""></Navbar.Link>
+        {/* Placeholder for additional links */}
+        <Navbar.Link href="#">About</Navbar.Link>
       </Navbar.Collapse>
     </Navbar>
   );
 }
+

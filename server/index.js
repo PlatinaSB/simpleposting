@@ -76,9 +76,7 @@ app.post("/register", async (req, res) => {
   console.log(req.body);
   if (password != repassword)
     return res.status(400).json({ message: "password does not match" });
-
-  const gsatl = await bcrypt.genSalt(10);
-  const hashpass = await bcrypt.hash(password, gsatl);
+  const hashpass = await bcrypt.hash(password, 10);
   const created_unix = Date.now();
   const query =
     "INSERT INTO user (username, email, password, created_unix) VALUES (?, ?, ?, ?)";
@@ -103,7 +101,8 @@ app.put("/changepassword", authenticateToken, async (req, res) => {
     return res.status(400).json({ message: "password does not match" });
 
   db.query(
-    "SELECT * FROM user WHERE userid = ?",[jwtdecode.userid],
+    "SELECT * FROM user WHERE userid = ?",
+    [jwtdecode.userid],
     async (err, results) => {
       const user = results[0];
       const isPasswordValid = await bcrypt.compare(oldpassword, user.password);
@@ -135,29 +134,16 @@ app.put("/changeEmail", authenticateToken, async (req, res) => {
 
 // POST flow
 
-// Get a Post from Username
-app.get("/posts/:username", (req, res) => {
-  const { username } = req.params; // Correctly extract the username
+// Get a Post from Userid
+app.get("/posts/:userid", (req, res) => {
+  const { userid } = req.params; // Correctly extract the userid
   const limit = 10;
-
   db.query(
-    "SELECT userid FROM user WHERE username = ?",
-    [username],
-    (err, userResults) => {
+    "SELECT * FROM post WHERE userid = ? LIMIT ?",
+    [userid, limit],
+    (err, postResults) => {
       if (err) return res.status(500).send(err);
-      if (userResults.length === 0) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const userId = userResults[0].userid;
-      db.query(
-        "SELECT * FROM post WHERE userid = ? LIMIT ?",
-        [userId, limit],
-        (err, postResults) => {
-          if (err) return res.status(500).send(err);
-          res.json(postResults);
-        }
-      );
+      res.json(postResults);
     }
   );
 });
