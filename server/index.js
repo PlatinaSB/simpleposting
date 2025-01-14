@@ -13,7 +13,7 @@ const PORT = 3000;
 const SECRET_KEY = "your_secret_key"; // Replace with a strong secret key
 
 // Middleware
-// app.use(cors(corsoption));
+app.use(cors(corsoption));
 app.use(bodyParser.json());
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
@@ -83,9 +83,9 @@ app.post("/register", async (req, res) => {
   const query =
     "INSERT INTO user (username, email, password, created_unix) VALUES (?, ?, ?, ?)";
 
-  db.query(query, [username, email, hashpass, created_unix], (err, result) => {
+  db.query(query, [username, email, hashpass, created_unix], (err) => {
     if (err) return res.status(500).send(err);
-    res.status(201).json({ message: "User created", userid: result.insertId });
+    res.status(201).json({ message: "User created"});
   });
 });
 

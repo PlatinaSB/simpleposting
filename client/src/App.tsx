@@ -1,13 +1,31 @@
-import { useState } from "react";
-
 import "./App.css";
 import Navbar from "./navbar";
-function App() {
-  const [count, setCount] = useState(0);
+import Login from "./login";
+import Register from "./register";
+import Home from "./home"
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import axios from "axios";
 
+export const setAuthToken = (token: string) => {
+  if (token) {
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  } else delete axios.defaults.headers.common["Authorization"];
+};
+const token = localStorage.getItem("token");
+if (token) {
+  setAuthToken(token);
+}
+function App() {
   return (
     <>
       <Navbar></Navbar>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+        </Routes>
+      </BrowserRouter>
     </>
   );
 }
