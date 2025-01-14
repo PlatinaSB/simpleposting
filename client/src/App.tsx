@@ -2,7 +2,8 @@ import "./App.css";
 import Navbar from "./navbar";
 import Login from "./login";
 import Register from "./register";
-import Home from "./home"
+import Home from "./home";
+import User from "./user"
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import axios from "axios";
 
@@ -24,6 +25,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          {token ? <Route path="/user" element={<User/>} />:null}
         </Routes>
       </BrowserRouter>
     </>

@@ -1,11 +1,7 @@
 import { Button, Navbar } from "flowbite-react";
 
 export default function Navabar() {
-
-const token = localStorage.getItem("token");
-
-
-
+  const token = localStorage.getItem("token");
 
   return (
     <Navbar fluid rounded>
@@ -20,7 +16,11 @@ const token = localStorage.getItem("token");
         </span>
       </Navbar.Brand>
       <div className="flex md:order-2">
-        <Button href="/login">Register</Button>
+        {!token ? (
+          <Button href="/register">Register</Button>
+        ) : (
+          <Button href="/user">accunt</Button>
+        )}
         <Navbar.Toggle />
       </div>
       <Navbar.Collapse>

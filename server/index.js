@@ -85,13 +85,13 @@ app.post("/register", async (req, res) => {
 
   db.query(query, [username, email, hashpass, created_unix], (err) => {
     if (err) return res.status(500).send(err);
-    res.status(201).json({ message: "User created"});
+    res.status(201).json({ message: "User created" });
   });
 });
 
 // User Change Password
 app.put("/changepassword", authenticateToken, async (req, res) => {
-  const { password, repassword } = req.body;
+  const { oldpassword, password, repassword } = req.body;
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
   const query = "UPDATE user SET password = ? WHERE userid = ?";
@@ -102,10 +102,19 @@ app.put("/changepassword", authenticateToken, async (req, res) => {
   if (password != repassword)
     return res.status(400).json({ message: "password does not match" });
 
-  db.query(query, [hashedPassword, jwtdecode.userid], (err, result) => {
-    if (err) return res.status(500).send(err);
-    res.status(200).json({ message: "password change success" });
-  });
+  db.query(
+    "SELECT * FROM user WHERE userid = ?",[jwtdecode.userid],
+    async (err, results) => {
+      const user = results[0];
+      const isPasswordValid = await bcrypt.compare(oldpassword, user.password);
+      if (!isPasswordValid)
+        return res.status(400).json({ message: "password wrong" });
+      db.query(query, [hashedPassword, jwtdecode.userid], (err, result) => {
+        if (err) return res.status(500).send(err);
+        res.status(200).json({ message: "password change success" });
+      });
+    }
+  );
 });
 
 // User Change email
@@ -204,8 +213,6 @@ app.put("/posts/:id", authenticateToken, (req, res) => {
       res.json({ message: "Post updated" });
     });
   });
-
- 
 });
 
 // Delete a Post
