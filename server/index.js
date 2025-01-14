@@ -32,7 +32,6 @@ function authenticateToken(req, res, next) {
   });
 }
 
-
 // MySQL connection
 const db = mysql.createConnection({
   host: "localhost",
@@ -74,11 +73,11 @@ app.post("/login", (req, res) => {
 // User Register
 app.post("/register", async (req, res) => {
   const { username, email, password, repassword } = req.body;
-  console.log(req.body)
+  console.log(req.body);
   if (password != repassword)
     return res.status(400).json({ message: "password does not match" });
 
-  const gsatl = await bcrypt.genSalt(10)
+  const gsatl = await bcrypt.genSalt(10);
   const hashpass = await bcrypt.hash(password, gsatl);
   const created_unix = Date.now();
   const query =
@@ -91,52 +90,39 @@ app.post("/register", async (req, res) => {
 });
 
 // User Change Password
-app.put(
-  "/changepassword/",
-  authenticateToken,
-  async (req, res) => {
-    const { userid, password, repassword } = req.body;
-    const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1];
-    const query = "UPDATE user SET password = ? WHERE userid = ?";
-    const hashedPassword = await bcrypt.hash(password, 10);
-    if (!token)
-      return res.status(401).json({ message: "Access token missing" });
-    const jwtdecode = jwt.verify(token, SECRET_KEY)
+app.put("/changepassword", authenticateToken, async (req, res) => {
+  const { password, repassword } = req.body;
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+  const query = "UPDATE user SET password = ? WHERE userid = ?";
+  const hashedPassword = await bcrypt.hash(password, 10);
+  if (!token) return res.status(401).json({ message: "Access token missing" });
+  const jwtdecode = jwt.verify(token, SECRET_KEY);
 
-    if (password != repassword)
-      return res.status(400).json({ message: "password does not match" });
-    if (userid != jwtdecode.userid) return res.status(403);
+  if (password != repassword)
+    return res.status(400).json({ message: "password does not match" });
 
-    db.query(query, [hashedPassword, userid], (err, result) => {
-      if (err) return res.status(500).send(err);
-      res.status(200).json({ message: "password change success" });
-    });
-  }
-);
+  db.query(query, [hashedPassword, jwtdecode.userid], (err, result) => {
+    if (err) return res.status(500).send(err);
+    res.status(200).json({ message: "password change success" });
+  });
+});
 
 // User Change email
-app.put(
-  "/changeEmail/",
-  authenticateToken,
-  async (req, res) => {
-    const { userid, email } = req.body;
-    const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1];
-    const query = "UPDATE user SET email = ? WHERE userid = ?";
-    if (!token)
-      return res.status(401).json({ message: "Access token missing" });
+app.put("/changeEmail", authenticateToken, async (req, res) => {
+  const { email } = req.body;
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+  const query = "UPDATE user SET email = ? WHERE userid = ?";
+  if (!token) return res.status(401).json({ message: "Access token missing" });
 
-    const jwtdecode = jwt.verify(token, SECRET_KEY)
+  const jwtdecode = jwt.verify(token, SECRET_KEY);
 
-    if (userid != jwtdecode.userid) return res.status(403);
-
-    db.query(query, [email, userid], (err, result) => {
-      if (err) return res.status(500).send(err);
-      res.status(200).json({ message: "email change success" });
-    });
-  }
-);
+  db.query(query, [email, jwtdecode.userid], (err, result) => {
+    if (err) return res.status(500).send(err);
+    res.status(200).json({ message: "email change success" });
+  });
+});
 
 // POST flow
 
@@ -181,14 +167,15 @@ app.post("/posts", authenticateToken, (req, res) => {
   const { post } = req.body;
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
-  
+
   if (!token) {
     return res.status(401).json({ message: "Access token missing" });
   }
 
-  const jwtdecode = jwt.verify(token, SECRET_KEY)
+  const jwtdecode = jwt.verify(token, SECRET_KEY);
   const created_unix = Date.now(); // Automatically set current Unix timestamp
-  const query = "INSERT INTO post (userid, post, created_unix) VALUES (?, ?, ?)";
+  const query =
+    "INSERT INTO post (userid, post, created_unix) VALUES (?, ?, ?)";
 
   db.query(query, [jwtdecode.userid, post, created_unix], (err, result) => {
     if (err) return res.status(500).send(err);
@@ -211,13 +198,14 @@ app.put("/posts/:id", authenticateToken, (req, res) => {
     if (result.length === 0 || result[0].userid !== jwtdecode.userid) {
       return res.status(403).json({ message: "Forbidden" });
     }
+    const query = "UPDATE post SET post = ? WHERE postid = ?";
+    db.query(query, [post, id], (err, result) => {
+      if (err) return res.status(500).send(err);
+      res.json({ message: "Post updated" });
+    });
   });
 
-  const query = "UPDATE post SET post = ? WHERE postid = ?";
-  db.query(query, [post, id], (err, result) => {
-    if (err) return res.status(500).send(err);
-    res.json({ message: "Post updated" });
-  });
+ 
 });
 
 // Delete a Post
@@ -227,17 +215,17 @@ app.delete("/posts/:id", authenticateToken, (req, res) => {
   const token = authHeader && authHeader.split(" ")[1];
   if (!token) return res.status(401).json({ message: "Access token missing" });
 
-  const jwtdecode = jwt.verify(token, SECRET_KEY)
+  const jwtdecode = jwt.verify(token, SECRET_KEY);
   const queryuserid = "SELECT * FROM post WHERE postid = ?";
   db.query(queryuserid, [id], (err, result) => {
     if (err) return res.status(500).send(err);
     if (result.length === 0 || result[0].userid !== jwtdecode.userid) {
       return res.status(403).json({ message: "Forbidden" });
     }
-  });
-  db.query("DELETE FROM post WHERE postid = ?", [id], (err, result) => {
-    if (err) return res.status(500).send(err);
-    res.json({ message: "Post deleted" });
+    db.query("DELETE FROM post WHERE postid = ?", [id], (err, result) => {
+      if (err) return res.status(500).send(err);
+      res.json({ message: "Post deleted" });
+    });
   });
 });
 

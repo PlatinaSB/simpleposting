@@ -4,3 +4,12 @@ express as server
 mysql as database 
 
 this a project for Final Project Web Programming Practicum
+
+to use 
+run xampp mysql
+cd server
+npm run dev
+
+open new terminal 
+cd client
+npm run dev
